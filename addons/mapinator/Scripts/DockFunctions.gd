@@ -2,11 +2,13 @@ extends Control
 tool
 
 var mapName = ""
+var offsets = []
 var requiredPaths = [null,null]
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	$JsonOpener.set_filters(PoolStringArray(["*.json ; JSON files"]))
+	$SingleOpener.set_filters(PoolStringArray(["*.json ; JSON files"]))
 	$TilesetOpener.set_filters(PoolStringArray(["*.Tres ; Tileset file"]))
 	
 	$HBoxContainer/VBoxContainer/Convert.disabled = true
@@ -40,6 +42,7 @@ func _on_Convert_pressed():
 func _on_TilesetOpener_file_selected(path):
 	Console("selected \"" + $TilesetOpener.current_file + "\" as the tileset")
 	requiredPaths[1] = path
+	$SingleOpener.popup_centered(Vector2(800,700))
 	if requiredPaths[0] != null:
 		$HBoxContainer/VBoxContainer/Convert.disabled = false
 
@@ -50,6 +53,23 @@ func _on_JsonOpener_file_selected(path):
 	requiredPaths[0] = path
 	if requiredPaths[1] != null:
 		$HBoxContainer/VBoxContainer/Convert.disabled = false
+
+
+
+func _on_SingleOpener_file_selected(path):
+	var file = File.new()
+	file.open(path, File.READ);
+	var jay = parse_json(file.get_as_text())
+	for tile in jay["tiles"]:
+		if tile.has("properties"):
+			offsets.append(tile["properties"][0]["value"])
+	
+	file.close()
+	Console("added tile offsets")
+	
+	if requiredPaths[0] != null:
+		$HBoxContainer/VBoxContainer/Convert.disabled = false
+
 
 func create_map():
 	for button in $HBoxContainer/VBoxContainer.get_children():
@@ -93,9 +113,12 @@ func create_map():
 							
 						
 			
-			node2d.add_child(tilemap)
-			tilemap.set_owner(node2d)
-			if map.layers[layers].has("data"):
+			
+			if map.layers[layers].has("data") and map.layers[layers]["type"] == "tilelayer":
+				node2d.add_child(tilemap)
+				tilemap.set_owner(node2d)
+#				if map.layers[layers].name == "Objects":
+#					tilemap.cell_tile_origin = tilemap.TILE_ORIGIN_BOTTOM_LEFT
 				for i in range(0,map.layers[layers].data.size()):
 					var tile = -1
 					tile = int(map.layers[layers].data[i]-1)
@@ -114,10 +137,12 @@ func create_map():
 					if tile > -1:
 						if map.tilesets.size() != 1:
 							if tile >= map.tilesets[1].firstgid-1:
+								#collection of images
 								tilemap.set_cell(
 									cell.x,
-									cell.y,
+									cell.y-offsets[(tile-(map.tilesets[1].firstgid-2))-1],
 									tile-(map.tilesets[1].firstgid-2))
+								
 							else:
 								tilemap.set_cell(
 									cell.x,
@@ -142,14 +167,14 @@ func create_map():
 					
 					
 					
-			elif map.layers[layers].has("objects"):
+			elif map.layers[layers].type == "objectgroup":
 				for object in map.layers[layers].objects:
 					if object.type == "npc":
 						var node = load("res://npc.tscn")
 						var npcNode = node.instance()
 						npcNode.position = Vector2(object.x+(object.width/2),object.y+(object.height/2))
 						
-						tilemap.add_child(npcNode)
+						node2d.get_node("Objects").add_child(npcNode)
 						
 						if object.type == "door":
 							var dnode = load("res://door.tscn")
@@ -157,7 +182,7 @@ func create_map():
 							doorNode.get_node("CollisionShape2D").shape = doorNode.get_node("CollisionShape2D").shape.duplicate()
 							doorNode.get_node("CollisionShape2D").shape.extents = Vector2(object.width/2,object.height/2)
 							doorNode.position = Vector2(object.x+object.width/2,object.y+object.height/2)
-							tilemap.add_child(doorNode)
+							node2d.get_node("Objects").add_child(doorNode)
 			else:
 				Console("[color=#ca4539]ERROR - no data found :-([/color]")
 				clean_up()
@@ -190,6 +215,7 @@ func clean_up():
 	for button in $HBoxContainer/VBoxContainer.get_children():
 		button.disabled = false
 	$HBoxContainer/VBoxContainer/Convert.disabled = true
+	offsets = []
 
 func Console(string:String):
 	$HBoxContainer/Panel/RichTextLabel.bbcode_text = $HBoxContainer/Panel/RichTextLabel.bbcode_text + string + "\n"
