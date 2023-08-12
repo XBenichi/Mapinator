@@ -2,7 +2,7 @@
 
 [ext_resource path="res://Tilesets/example.tres" type="TileSet" id=1]
 
-[node name="" type="Node2D"]
+[node name="Node2D" type="Node2D"]
 
 [node name="Tile Layer 1" type="TileMap" parent="."]
 tile_set = ExtResource( 1 )
@@ -30,4 +30,4 @@ tile_set = ExtResource( 1 )
 cell_size = Vector2( 16, 16 )
 cell_y_sort = true
 format = 1
-tile_data = PoolIntArray( 2228227, 1, 0, 2228236, 1, 0, 2228240, 2, 0, 2424854, 1, 0, 2424858, 2, 0, 2621441, 1, 0, 2752523, 1, 0, 2752527, 2, 0, 2883605, 1, 0, 3014680, 3, 0 )
+tile_data = PoolIntArray( 2228227, 0, 7340032, 2228236, 0, 7340032, 2228240, 0, 7340033, 2424854, 0, 7340032, 2424858, 0, 7340033, 2621441, 0, 7340032, 2752523, 0, 7340032, 2752527, 0, 7340033, 2883605, 0, 7340032, 3145752, 0, 7340034 )

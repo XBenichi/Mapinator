@@ -3,13 +3,15 @@ tool
 
 var mapName = ""
 var offsets = []
-var requiredPaths = [null,null]
+var tileOR = []
+var set = 0
+var requiredPaths = [null,[]]
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	$JsonOpener.set_filters(PoolStringArray(["*.json ; JSON files"]))
-	$SingleOpener.set_filters(PoolStringArray(["*.json ; JSON files"]))
-	$TilesetOpener.set_filters(PoolStringArray(["*.Tres ; Tileset file"]))
+	#$SingleOpener.set_filters(PoolStringArray(["*.json ; JSON files"]))
+	$TilesetOpener.set_filters(PoolStringArray(["*.Tres ; Tileset files"]))
 	
 	$HBoxContainer/VBoxContainer/Convert.disabled = true
 
@@ -28,7 +30,7 @@ func _on_Json_pressed():
 
 
 func _on_Tileset_pressed():
-	$TilesetOpener.mode = FileDialog.MODE_OPEN_FILE
+	$TilesetOpener.mode = FileDialog.MODE_OPEN_FILES
 	$TilesetOpener.popup_centered(Vector2(800, 700))
 
 func _on_Clear_pressed():
@@ -41,8 +43,43 @@ func _on_Convert_pressed():
 
 func _on_TilesetOpener_file_selected(path):
 	Console("selected \"" + $TilesetOpener.current_file + "\" as the tileset")
-	requiredPaths[1] = path
-	$SingleOpener.popup_centered(Vector2(800,700))
+	requiredPaths[1][0] = path
+	var file = File.new()
+	path = path.replace(".tres",".json")
+	file.open(path, File.READ);
+	var jay = parse_json(file.get_as_text())
+	if jay.has("tiles"):
+		tileOR.append(1)
+		for tile in jay["tiles"]:
+			if tile.has("properties"):
+				offsets.append(tile["properties"][0]["value"])
+	else:
+		tileOR.append(0)
+			
+	if requiredPaths[0] != null:
+		$HBoxContainer/VBoxContainer/Convert.disabled = false
+
+
+func _on_TilesetOpener_files_selected(paths):
+	Console("selected multiple tilesets")
+	for path in paths:
+		var jaypath = path.replace(".tres",".json")
+		requiredPaths[1].append(path)
+		var file = File.new()
+		#print(jaypath)
+		file.open(jaypath, File.READ);
+		var jay = parse_json(file.get_as_text())
+		if jay.has("tiles"):
+			tileOR.append(1)
+			for tile in jay["tiles"]:
+				if tile.has("properties"):
+					offsets.append(tile["properties"][0]["value"])
+		else:
+			tileOR.append(0)
+
+		file.close()
+		
+	
 	if requiredPaths[0] != null:
 		$HBoxContainer/VBoxContainer/Convert.disabled = false
 
@@ -51,24 +88,11 @@ func _on_JsonOpener_file_selected(path):
 	mapName = $JsonOpener.current_file
 	mapName = mapName.replace(".json",".tscn")
 	requiredPaths[0] = path
-	if requiredPaths[1] != null:
+	if requiredPaths[1][0] != null:
 		$HBoxContainer/VBoxContainer/Convert.disabled = false
 
 
 
-func _on_SingleOpener_file_selected(path):
-	var file = File.new()
-	file.open(path, File.READ);
-	var jay = parse_json(file.get_as_text())
-	for tile in jay["tiles"]:
-		if tile.has("properties"):
-			offsets.append(tile["properties"][0]["value"])
-	
-	file.close()
-	Console("added tile offsets")
-	
-	if requiredPaths[0] != null:
-		$HBoxContainer/VBoxContainer/Convert.disabled = false
 
 
 func create_map():
@@ -95,7 +119,9 @@ func create_map():
 			var tilemap = TileMap.new() 
 			tilemap.cell_size = Vector2(map.tilewidth,map.tileheight)
 			tilemap.name = map.layers[layers].name
-			tilemap.tile_set = load(requiredPaths[1])
+			print(requiredPaths[1])
+			
+			
 			tilemap.cell_y_sort = true
 			
 			var collection = false
@@ -134,34 +160,38 @@ func create_map():
 					var atlas_Y = floor(tile / (atlas_image.get_width()/int(map.tilewidth)))
 				
 				
+					
+				
 					if tile > -1:
-						if map.tilesets.size() != 1:
-							if tile >= map.tilesets[1].firstgid-1:
-								#collection of images
-								tilemap.set_cell(
-									cell.x,
-									cell.y-offsets[(tile-(map.tilesets[1].firstgid-2))-1],
-									tile-(map.tilesets[1].firstgid-2))
-								
-							else:
-								tilemap.set_cell(
-									cell.x,
-									cell.y,
-									0,
-									false,
-									false,
-									false,
-									Vector2(atlas_X,atlas_Y))
-						else:
-							tilemap.set_cell(
-									cell.x,
-									cell.y,
-									0,
-									false,
-									false,
-									false,
-									Vector2(atlas_X,atlas_Y))
+						tileset_check(tile,map.tilesets[set])
+						tilemap.tile_set = load(requiredPaths[1][set])
 						
+						if tileOR[set] == 1:
+							#collection of images
+							tilemap.set_cell(
+								cell.x,
+								cell.y-offsets[(tile-(map.tilesets[1].firstgid-2))-1],
+								tile-(map.tilesets[1].firstgid-2))
+						else:
+							#normal
+							tilemap.set_cell(
+								cell.x,
+								cell.y,
+								0,
+								false,
+								false,
+								false,
+								Vector2(atlas_X,atlas_Y))
+#					else:
+#						tilemap.set_cell(
+#								cell.x,
+#								cell.y,
+#								0,
+#								false,
+#								false,
+#								false,
+#								Vector2(atlas_X,atlas_Y))
+#
 						
 					
 					
@@ -211,11 +241,20 @@ func create_map():
 	clean_up()
 	
 
+func tileset_check(tile,tilesets):
+	while tile <= tilesets[1].firstgid-1:
+		set = set + 1
+		
+
 func clean_up():
 	for button in $HBoxContainer/VBoxContainer.get_children():
 		button.disabled = false
 	$HBoxContainer/VBoxContainer/Convert.disabled = true
 	offsets = []
+	requiredPaths = [null,[]]
+	tileOR = []
 
 func Console(string:String):
 	$HBoxContainer/Panel/RichTextLabel.bbcode_text = $HBoxContainer/Panel/RichTextLabel.bbcode_text + string + "\n"
+
+

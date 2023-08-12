@@ -28,7 +28,7 @@ margin_top = 44.0
 margin_right = 200.0
 margin_bottom = 84.0
 rect_min_size = Vector2( 200, 40 )
-text = "Open Tileset"
+text = "Open Tileset(s)"
 
 [node name="Convert" type="Button" parent="HBoxContainer/VBoxContainer"]
 margin_top = 88.0
@@ -74,20 +74,9 @@ current_path = "/Users/My HP/OneDrive/Documents/Godot Projects/mapinator/Mapinat
 [node name="TilesetOpener" type="FileDialog" parent="."]
 margin_right = 315.0
 margin_bottom = 130.0
-window_title = "Open a Tileset"
+window_title = "Open File(s)"
 resizable = true
-mode = 0
-access = 2
-filters = PoolStringArray( "*.Tres ; Tileset file" )
-current_dir = "/Users/My HP/OneDrive/Documents/Godot Projects/mapinator/Mapinator"
-current_path = "/Users/My HP/OneDrive/Documents/Godot Projects/mapinator/Mapinator/"
-
-[node name="SingleOpener" type="FileDialog" parent="."]
-margin_right = 315.0
-margin_bottom = 130.0
-window_title = "Open a CoI JSON"
-resizable = true
-mode = 0
+mode = 1
 access = 2
 filters = PoolStringArray( "*.Tres ; Tileset file" )
 current_dir = "/Users/My HP/OneDrive/Documents/Godot Projects/mapinator/Mapinator"
@@ -99,4 +88,4 @@ current_path = "/Users/My HP/OneDrive/Documents/Godot Projects/mapinator/Mapinat
 [connection signal="pressed" from="HBoxContainer/VBoxContainer/Clear" to="." method="_on_Clear_pressed"]
 [connection signal="file_selected" from="JsonOpener" to="." method="_on_JsonOpener_file_selected"]
 [connection signal="file_selected" from="TilesetOpener" to="." method="_on_TilesetOpener_file_selected"]
-[connection signal="file_selected" from="SingleOpener" to="." method="_on_SingleOpener_file_selected"]
+[connection signal="files_selected" from="TilesetOpener" to="." method="_on_TilesetOpener_files_selected"]
